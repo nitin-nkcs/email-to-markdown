@@ -19,13 +19,21 @@ def convert_eml_to_md(input_file, output_file):
     
     # Function to extract and convert email parts
     def extract_body(part):
-        if part.get_content_type() == 'text/plain':
-            return part.get_payload(decode=True).decode(part.get_content_charset())
-        elif part.get_content_type() == 'text/html':
-            return md(part.get_payload(decode=True).decode(part.get_content_charset()))
-        elif part.is_multipart():
-            return ''.join([extract_body(subpart) for subpart in part.get_payload()])
-        return ''
+        text_plain = ''
+        text_html = ''
+        if part.is_multipart():
+            for subpart in part.get_payload():
+                if subpart.get_content_type() == 'text/plain':
+                    text_plain += subpart.get_payload(decode=True).decode(subpart.get_content_charset())
+                elif subpart.get_content_type() == 'text/html':
+                    text_html += md(subpart.get_payload(decode=True).decode(subpart.get_content_charset()))
+        else:
+            if part.get_content_type() == 'text/plain':
+                text_plain = part.get_payload(decode=True).decode(part.get_content_charset())
+            elif part.get_content_type() == 'text/html':
+                text_html = md(part.get_payload(decode=True).decode(part.get_content_charset()))
+        
+        return text_plain if text_plain else text_html
     
     # Extract the email body
     body = extract_body(msg)
@@ -45,6 +53,7 @@ def convert_eml_to_md(input_file, output_file):
             f.write(f"**In-Reply-To:** {in_reply_to}\n\n")
         f.write(f"---\n\n")
         f.write(body)
+
 
 # Example usage
 input_file = 'C:\\Users\\Nitin\\Downloads\\JustThinkingAboutYou.eml'
