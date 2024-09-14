@@ -17,12 +17,18 @@ def convert_eml_to_md(input_file, output_file):
     reply_to = msg['Reply-To']
     in_reply_to = msg['In-Reply-To']
     
-    # Extract the email body
-    body = msg.get_body(preferencelist=('plain', 'html')).get_content()
+    # Function to extract and convert email parts
+    def extract_body(part):
+        if part.get_content_type() == 'text/plain':
+            return part.get_payload(decode=True).decode(part.get_content_charset())
+        elif part.get_content_type() == 'text/html':
+            return md(part.get_payload(decode=True).decode(part.get_content_charset()))
+        elif part.is_multipart():
+            return ''.join([extract_body(subpart) for subpart in part.get_payload()])
+        return ''
     
-    # Convert HTML to Markdown if necessary
-    if msg.get_body(preferencelist=('html')):
-        body = md(body)
+    # Extract the email body
+    body = extract_body(msg)
     
     # Write to Markdown file
     with open(output_file, 'w', encoding='utf-8') as f:
